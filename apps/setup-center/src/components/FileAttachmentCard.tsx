@@ -476,6 +476,7 @@ export function FileAttachmentCard({ file, apiBaseUrl, inline = false }: FileAtt
           onMouseEnter={e => { e.currentTarget.style.background = "rgba(8,145,178,0.16)"; }}
           onMouseLeave={e => { e.currentTarget.style.background = "rgba(8,145,178,0.08)"; }}
           onClick={docKind ? () => { void openDocPreview(); } : handleDownload}
+          onMouseDown={docKind === "html" ? (e) => e.stopPropagation() : undefined}
           onContextMenu={handleContextMenu}
         >
           <span style={{ fontSize: 16, lineHeight: 1, flexShrink: 0 }}>

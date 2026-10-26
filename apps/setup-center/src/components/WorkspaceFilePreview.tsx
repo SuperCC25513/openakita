@@ -13,6 +13,7 @@ export function WorkspaceFileImage({ file, alt, onPreview, ...props }: {
   if (resource.error) return <span role="alert">{t(`chat.filePreview.${resource.error}`)}</span>;
   if (!resource.objectUrl) return <span role="status">{t("chat.filePreview.loading")}</span>;
   return <img {...props} src={resource.objectUrl} alt={alt} role="button" tabIndex={0}
+    onMouseDown={(e) => e.stopPropagation()}
     style={{ ...props.style, cursor: "pointer" }} onClick={() => onPreview(resource.objectUrl!)}
     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onPreview(resource.objectUrl!); } }} />;
 }
@@ -39,6 +40,7 @@ export function WorkspaceFilePreview({ file, onClose }: { file: WorkspaceFile; o
   }, [onClose]);
   return (
     <dialog ref={dialogRef} className="workspaceFilePreview" aria-label={file.name}
+      onMouseDown={(e) => e.stopPropagation()}
       onCancel={(e) => { e.preventDefault(); onClose(); }}>
       <header className="workspaceFilePreviewHeader">
         <strong title={file.name}>{file.name}</strong>

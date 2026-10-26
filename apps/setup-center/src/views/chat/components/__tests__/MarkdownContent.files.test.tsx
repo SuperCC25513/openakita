@@ -32,6 +32,19 @@ function renderMessage(content: string) {
 }
 
 describe("Markdown workspace files", () => {
+  it("opens on the first click without collapsing the chat sidebar or remounting the message", async () => {
+    const collapseSidebar = vi.fn();
+    render(<div onMouseDown={collapseSidebar}><MarkdownContent
+      content="[HTML](/workspace/demo.html)" mdModules={mdModules} apiBaseUrl="https://ops.example.com" />
+    </div>);
+    const link = screen.getByRole("link", { name: "HTML" });
+    fireEvent.mouseDown(link);
+    fireEvent.click(link);
+    await waitFor(() => expect(document.querySelector("iframe")).not.toBeNull());
+    fireEvent.mouseDown(screen.getByRole("link", { name: "下载" }));
+    expect(collapseSidebar).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
   it("opens the reported screenshot link through auth-aware fetch, not a bare navigation", async () => {
     renderMessage("[浅色截图](/workspace/anatomy-demo/source/shots/lines-light.png)");
     const link = screen.getByRole("link", { name: "浅色截图" });

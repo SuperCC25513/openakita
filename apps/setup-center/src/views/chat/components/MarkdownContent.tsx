@@ -99,7 +99,7 @@ export function MarkdownContent({
       a: ({ node: _node, href, children, ...props }: any) => {
         const file = resolveWorkspaceFile(String(href || ""), apiBaseUrl, conversationId);
         if (!file) return <a {...props} href={href}>{children}</a>;
-        return <a {...props} href={file.url} onClick={(e) => {
+        return <a {...props} href={file.url} onMouseDown={(e) => e.stopPropagation()} onClick={(e) => {
           e.preventDefault();
           setPreviewFile(file);
         }}>{children}</a>;

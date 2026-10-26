@@ -120,10 +120,11 @@ function loadMdModules(): Promise<MdModules | null> {
     import("../utils/katexMemo"),
     // LaTeX 定界符归一（\[..\]→$$、\(..\)→$、货币转义），见 utils/mathPreprocess.ts。
     import("../components/SafeMarkdown"),
+    import("../components/SourceBadge"),
     // KaTeX 自带的样式表（字体度量、定位 span 的 class）。动态 import 让
     // Vite 把它打进 markdown 的懒加载 chunk，只有真正渲染消息时才拉取。
     import("katex/dist/katex.min.css"),
-  ]).then(([md, gfm, math, hl, raw, sanitize, katexMemo, safeMarkdown]) => {
+  ]).then(([md, gfm, math, hl, raw, sanitize, katexMemo, safeMarkdown, badges]) => {
     const schema = buildSanitizeSchema((sanitize as any).defaultSchema);
     const RawMarkdown = md.default;
     // 统一入口：所有消费方（聊天 + 记忆 + Org 面板 + 反馈 + …）共享这一个被包装过的
@@ -136,7 +137,7 @@ function loadMdModules(): Promise<MdModules | null> {
       ReactMarkdown,
       // remark-math 解析 `$...$` / `$$...$$`（定界符归一见 utils/mathPreprocess.ts）；
       // singleDollarTextMath 让单个 `$x$` 也按行内公式处理，这是 LLM 的事实习惯。
-      remarkPlugins: [gfm.default, [math.default, { singleDollarTextMath: true }] as any],
+      remarkPlugins: [gfm.default, [math.default, { singleDollarTextMath: true }] as any, badges.remarkSourceBadges],
       // 顺序极其关键：
       //   raw       —— 先把 markdown 里的 raw HTML 解析成真实节点；
       //   sanitize  —— 按 GitHub 白名单清洗 DOM；math 占位节点是

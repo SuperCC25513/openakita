@@ -1,4 +1,6 @@
 import { useTranslation } from "react-i18next";
+import type { Root, RootContent } from "mdast";
+import i18n from "../../../i18n";
 
 // P0-2 后续：把 LLM 输出里的 `[来源:工具]` / `[来源:历史]` / `[来源:常识]` /
 // `[来源:不确定]` 反幻觉来源标签从"裸文本"渲染成可视化 badge。
@@ -11,9 +13,8 @@ import { useTranslation } from "react-i18next";
 // 提供三种用法：
 //   - <SourceBadge type="工具" />     单独渲染一个 badge（少见）
 //   - <TextWithSourceBadges text=.. /> 用于纯文本上下文（thinking chain / thinking block）
-//   - useSourceTagFormatter()        对 markdown 源字符串做 HTML span 替换，
-//                                    依赖 useMdModules 的 rehype-raw + rehype-sanitize 把
-//                                    span (className + title) 渲染出来。
+//   - remarkSourceBadges            在共享 Markdown 管线中只转换普通文本节点；
+//                                    不改写行内代码、代码块、链接目标或 HTML 属性。
 
 export type SourceType = "工具" | "历史" | "常识" | "不确定";
 
@@ -124,52 +125,25 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-/**
- * Pre-process a markdown source string by replacing `[来源:X]` tokens with raw
- * `<span class="srcBadge srcBadge-xxx" title="...">label</span>` HTML. Relies on
- * useMdModules.ts's rehype-raw + rehype-sanitize pipeline, which already allows
- * `span` with `className` (and the GitHub default schema allows `title`).
- *
- * Labels/tips are baked in at transform time from the current i18n locale, so
- * the returned string is self-contained and locale-correct.
- *
- * Fenced code blocks (```...```) are preserved verbatim — if a tutorial / agent
- * example literally shows `[来源:工具]` inside a code fence we must not turn it
- * into a styled span (that would change the meaning of the demonstrated text).
- */
-export function transformSourceTagsForMarkdown(
-  text: string,
-  getLabel: (type: SourceType) => string,
-  getTip: (type: SourceType) => string,
-): string {
-  if (!text) return text;
-  // Split keeps the delimiter (fenced code block) at odd indices. Unclosed
-  // fences (common during streaming) land in the trailing odd part and are
-  // therefore conservatively preserved — which is the safe default.
-  const parts = text.split(/(```[\s\S]*?```)/g);
-  return parts
-    .map((part, idx) => {
-      if (idx % 2 === 1) return part;
-      return part.replace(/\[来源[:：]\s*(工具|历史|常识|不确定)\s*\]/g, (_match, type: string) => {
-        const t = type as SourceType;
-        const kind = SOURCE_TYPE_KIND[t];
-        const label = escapeHtml(getLabel(t));
-        const tip = escapeHtml(getTip(t));
-        return `<span class="srcBadge srcBadge-${kind}" title="${tip}">${label}</span>`;
+/** Run after Markdown parsing so code examples remain literal, including while streaming. */
+export function remarkSourceBadges() {
+  return (tree: Root) => {
+    function transform(parent: { children: RootContent[] }) {
+      parent.children = parent.children.flatMap((node): RootContent[] => {
+        if (node.type === "text") {
+          return splitTextWithSourceTags(node.value).map((segment) => {
+            if (segment.kind === "text") return { type: "text", value: segment.value };
+            const kind = SOURCE_TYPE_KIND[segment.type];
+            const label = escapeHtml(i18n.t(`chat.sourceTag.${kind}`, segment.type));
+            const tip = escapeHtml(i18n.t(`chat.sourceTagTip.${kind}`, ""));
+            // Controlled HTML still goes through the shared rehype sanitizer.
+            return { type: "html", value: `<span class="srcBadge srcBadge-${kind}" title="${tip}">${label}</span>` };
+          });
+        }
+        if ("children" in node) transform(node as { children: RootContent[] });
+        return [node];
       });
-    })
-    .join("");
-}
-
-/**
- * Hook returning a stable transformer that bakes the current locale's
- * labels/tips into markdown source strings before they hit ReactMarkdown.
- */
-export function useSourceTagFormatter(): (text: string) => string {
-  const { t } = useTranslation();
-  const getLabel = (type: SourceType) =>
-    t(`chat.sourceTag.${SOURCE_TYPE_KIND[type]}`, type);
-  const getTip = (type: SourceType) =>
-    t(`chat.sourceTagTip.${SOURCE_TYPE_KIND[type]}`, "");
-  return (text: string) => transformSourceTagsForMarkdown(text, getLabel, getTip);
+    }
+    transform(tree);
+  };
 }

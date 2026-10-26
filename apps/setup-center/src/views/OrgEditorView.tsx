@@ -10,7 +10,6 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 import { useMdModules } from "./chat/hooks/useMdModules";
-import { useSourceTagFormatter } from "./chat/components/SourceBadge";
 import {
   ReactFlow,
   Background,
@@ -687,7 +686,6 @@ export function OrgEditorView({
 }) {
   const { t } = useTranslation();
   const mdModules = useMdModules();
-  const formatSourceTags = useSourceTagFormatter();
 
   // State
   const [orgList, setOrgList] = useState<OrgSummary[]>([]);
@@ -2774,7 +2772,7 @@ export function OrgEditorView({
                 <div className="org-feed-tip-content">
                   {mdModules ? (
                     <mdModules.ReactMarkdown remarkPlugins={mdModules.remarkPlugins} rehypePlugins={mdModules.rehypePlugins}>
-                      {formatSourceTags(text ?? "")}
+                      {text ?? ""}
                     </mdModules.ReactMarkdown>
                   ) : (
                     <div style={{ whiteSpace: "pre-wrap" }}>{text ?? ""}</div>
@@ -3863,7 +3861,7 @@ export function OrgEditorView({
                             <div className="bb-entry-content" style={{ marginTop: 3 }}>
                               {mdModules ? (
                                 <mdModules.ReactMarkdown remarkPlugins={mdModules.remarkPlugins} rehypePlugins={mdModules.rehypePlugins}>
-                                  {formatSourceTags(bb.content ?? "")}
+                                  {bb.content ?? ""}
                                 </mdModules.ReactMarkdown>
                               ) : (
                                 <div style={{ whiteSpace: "pre-wrap" }}>{bb.content ?? ""}</div>

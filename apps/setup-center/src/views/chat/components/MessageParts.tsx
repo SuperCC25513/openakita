@@ -26,7 +26,6 @@ export function MessageParts({
   msg,
   parts,
   bodyContent,
-  formatSourceTags,
   mdModules,
   showChain = true,
   forceExpandChain = false,
@@ -44,7 +43,6 @@ export function MessageParts({
   parts: MessagePart[];
   /** Body text with the trailing [来源:X] tag already peeled off by the caller. */
   bodyContent: string;
-  formatSourceTags: (text: string) => string;
   mdModules?: MdModules | null;
   showChain?: boolean;
   /** Force the reasoning chain open in a single click (empty-bubble reveal). */
@@ -84,11 +82,12 @@ export function MessageParts({
             return bodyContent ? (
               <MarkdownContent
                 key={part.id}
-                content={formatSourceTags(bodyContent)}
+                content={bodyContent}
                 mdModules={mdModules}
                 className="chatMdContent"
                 streaming={streaming}
                 apiBaseUrl={apiBaseUrl}
+                conversationId={conversationId}
                 onImagePreview={onImagePreview}
               />
             ) : null;

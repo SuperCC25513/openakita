@@ -7,7 +7,6 @@ import { useTranslation } from "react-i18next";
 import { safeFetch } from "../providers";
 import { OrgAvatar } from "./OrgAvatars";
 import { useMdModules } from "../views/chat/hooks/useMdModules";
-import { useSourceTagFormatter } from "../views/chat/components/SourceBadge";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "./ui/tooltip";
 import { translateDept } from "../views/orgEditorConstants";
 
@@ -173,7 +172,6 @@ export function OrgDashboard({ orgId, apiBaseUrl, orgName, onNodeClick }: OrgDas
   const [loading, setLoading] = useState(true);
   const [, setTick] = useState(0);
   const mdModules = useMdModules();
-  const formatSourceTags = useSourceTagFormatter();
 
   const fetchStats = useCallback(async () => {
     try {
@@ -222,7 +220,7 @@ export function OrgDashboard({ orgId, apiBaseUrl, orgName, onNodeClick }: OrgDas
     <div className="db-tip-content">
       {mdModules ? (
         <mdModules.ReactMarkdown remarkPlugins={mdModules.remarkPlugins} rehypePlugins={mdModules.rehypePlugins}>
-          {formatSourceTags(text ?? "")}
+          {text ?? ""}
         </mdModules.ReactMarkdown>
       ) : (
         <div style={{ whiteSpace: "pre-wrap" }}>{text ?? ""}</div>

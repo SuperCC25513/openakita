@@ -9,7 +9,7 @@ import { SpinnerTipDisplay } from "./SpinnerTipDisplay";
 import { MarkdownContent } from "./MarkdownContent";
 import { MessageParts } from "./MessageParts";
 import { MessageCompletionActions } from "./MessageCompletionActions";
-import { useSourceTagFormatter, extractTrailingSourceTag, SourceBadge } from "./SourceBadge";
+import { extractTrailingSourceTag, SourceBadge } from "./SourceBadge";
 import { IconClipboard, IconEdit, IconRefresh, IconRewind, IconChevronRight } from "../../../icons";
 
 export const MessageBubble = memo(function MessageBubble({
@@ -50,7 +50,6 @@ export const MessageBubble = memo(function MessageBubble({
   onCompletionAction?: (msg: ChatMessage, action: MessageCompletionAction) => void;
 }) {
   const { t } = useTranslation();
-  const formatSourceTags = useSourceTagFormatter();
   const [revealChain, setRevealChain] = useState(false);
   const isUser = msg.role === "user";
   const isAssistant = msg.role === "assistant";
@@ -125,7 +124,6 @@ export const MessageBubble = memo(function MessageBubble({
               msg={msg}
               parts={parts}
               bodyContent={bodyContent}
-              formatSourceTags={formatSourceTags}
               mdModules={mdModules}
               showChain={effShowChain}
               forceExpandChain={revealChain}
@@ -165,11 +163,12 @@ export const MessageBubble = memo(function MessageBubble({
         ) : (
           bodyContent && (
             <MarkdownContent
-              content={formatSourceTags(bodyContent)}
+              content={bodyContent}
               mdModules={mdModules}
               className={isUser ? "chatMdContent chatMdContentUser" : "chatMdContent"}
               streaming={!!msg.streaming}
               apiBaseUrl={apiBaseUrl}
+              conversationId={conversationId}
               onImagePreview={onImagePreview}
             />
           )

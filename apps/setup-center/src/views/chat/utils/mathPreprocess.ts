@@ -21,7 +21,7 @@
 // 这里在不破坏"真实围栏"的前提下，把这些噪声反引号清掉。
 //
 // 关键安全措施：先标出两类"受保护区间"——(1) 已闭合的成对围栏；(2) 流式
-// 尚未闭合、但带合法语言标签的尾部开栏（正在流入的代码块）。只在保护区间
+// 尚未闭合的合法尾部开栏（包括没有语言标签的代码块）。只在保护区间
 // **之外** 才清理反引号噪声，绝不动正在显示/流入的代码块。
 const VALID_LANGUAGE_RE = /^[a-z0-9][a-z0-9+#-]*$/i;
 function sanitizeLanguageTag(tag: string): string {
@@ -50,14 +50,13 @@ function scrubBacktickNoise(text: string): string {
     protectedRanges.push({ end: balancedFenceRe.lastIndex, start: match.index + match[1].length });
   }
 
-  // (2) 流式尾部：未闭合但带合法语言标签的开栏（正在流入的代码块）。
-  // 比上游更宽——只要语言标签合法且尚未闭合就保护，宁可少清也绝不误删开栏。
-  const danglingFenceRe = /(^|\n)[ \t]*(`{3,}|~{3,})([a-z0-9][a-z0-9+#-]{0,15})[ \t]*\n([\s\S]*)$/gi;
+  // (2) 流式尾部：未闭合的开栏。无语言标签同样是合法 Markdown，不能当噪声删掉。
+  const danglingFenceRe = /(^|\n)[ \t]*(`{3,}|~{3,})([a-z0-9][a-z0-9+#-]{0,15})?[ \t]*\n([\s\S]*)$/gi;
   while ((match = danglingFenceRe.exec(text)) !== null) {
     const marker = match[2] || "```";
     const info = match[3] || "";
     const body = match[4] || "";
-    if (!hasCloseFenceLine(body, marker) && sanitizeLanguageTag(info)) {
+    if (!hasCloseFenceLine(body, marker) && (!info || sanitizeLanguageTag(info))) {
       protectedRanges.push({ end: text.length, start: match.index + match[1].length });
       break;
     }

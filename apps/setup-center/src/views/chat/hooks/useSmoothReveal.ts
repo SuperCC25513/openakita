@@ -56,7 +56,7 @@ export function useSmoothReveal(text: string, isRunning: boolean): string {
       );
 
       // 标签感知：揭示边界绝不能落在原始 HTML 标签 `<...>` 内部。上游内容
-      // 经 formatSourceTags 注入过 <span class="srcBadge"> 之类的完整标签，
+      // Markdown 支持原始 HTML，
       // 而管线里的 rehype-raw 会解析它们——若把切片停在半截标签里，HTML
       // 解析器会把后续内容误当属性吞掉，导致引用角标闪烁错乱。这里把边界
       // 规整为：要么停在标签之前、要么整段越过该标签。

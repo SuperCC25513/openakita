@@ -549,7 +549,9 @@ function MainApp() {
     };
     // Listen for postMessage from embedded docs iframe (cross-origin safe)
     const onMessage = (e: MessageEvent) => {
-      if (e.data?.type === "openakita-navigate" && typeof e.data.hash === "string") {
+      // Generated HTML previews use an opaque sandbox origin and have no
+      // authority to navigate the host through its docs/plugin message bridge.
+      if (e.origin !== "null" && e.data?.type === "openakita-navigate" && typeof e.data.hash === "string") {
         window.location.hash = e.data.hash;
       }
     };

@@ -5,17 +5,12 @@ import { IconCheck, IconClipboard } from "../../../icons";
 import { copyToClipboard } from "../../../utils/clipboard";
 import { useSmoothReveal } from "../hooks/useSmoothReveal";
 import type { MdModules } from "../utils/chatTypes";
+import { resolveWorkspaceFile, type WorkspaceFile } from "../utils/workspaceFiles";
+import { WorkspaceFileImage, WorkspaceFilePreview } from "../../../components/WorkspaceFilePreview";
+import { IS_TAURI } from "../../../platform/detect";
 import { appendAuthToken } from "../utils/chatHelpers";
 
 const MARKDOWN_PREVIEW_CHAR_LIMIT = 40_000;
-
-function resolveMarkdownImageUrl(src: string, apiBaseUrl?: string): string {
-  if (!src) return "";
-  if (src.startsWith("data:") || src.startsWith("blob:")) return src;
-  if (src.startsWith("http")) return appendAuthToken(src);
-  if (src.startsWith("/")) return appendAuthToken(`${apiBaseUrl || ""}${src}`);
-  return src;
-}
 
 function MarkdownCodeBlock({ node, children, ...props }: any) {
   const { t } = useTranslation();
@@ -62,6 +57,7 @@ export function MarkdownContent({
   className,
   streaming = false,
   apiBaseUrl,
+  conversationId,
   onImagePreview,
 }: {
   content: string;
@@ -69,9 +65,11 @@ export function MarkdownContent({
   className?: string;
   streaming?: boolean;
   apiBaseUrl?: string;
+  conversationId?: string;
   onImagePreview?: (displayUrl: string, downloadUrl: string, name: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [previewFile, setPreviewFile] = useState<WorkspaceFile | null>(null);
   // Track whether THIS mounted instance has ever seen streaming=true.
   // If yes, the user just watched the content arrive — don't slam it shut the
   // instant streaming flips to false. They can still collapse via the button.
@@ -98,36 +96,51 @@ export function MarkdownContent({
   const markdownComponents = useMemo(() => {
     const components: Record<string, any> = {
       pre: MarkdownCodeBlock,
+      a: ({ node: _node, href, children, ...props }: any) => {
+        const file = resolveWorkspaceFile(String(href || ""), apiBaseUrl, conversationId);
+        if (!file) return <a {...props} href={href}>{children}</a>;
+        return <a {...props} href={file.url} onClick={(e) => {
+          e.preventDefault();
+          setPreviewFile(file);
+        }}>{children}</a>;
+      },
     };
-    if (onImagePreview) {
-      components.img = ({ node: _node, src, alt, title, ...props }: any) => {
-        const imageUrl = resolveMarkdownImageUrl(String(src || ""), apiBaseUrl);
+    components.img = ({ node: _node, src, alt, title, ...props }: any) => {
+        const file = resolveWorkspaceFile(String(src || ""), apiBaseUrl, conversationId);
+        if (file) return <WorkspaceFileImage {...props} key={file.url} file={file} alt={alt || ""}
+          title={title} onPreview={(objectUrl) => {
+            if (onImagePreview) {
+              // Keep the existing lightbox callback; native downloads require
+              // an HTTP URL, whereas browser downloads can use the fetched Blob.
+              onImagePreview(objectUrl, IS_TAURI ? appendAuthToken(file.url) : objectUrl, alt || title || file.name);
+            } else setPreviewFile(file);
+          }} />;
+        const imageUrl = src?.startsWith("/") && !src.startsWith("//") ? `${apiBaseUrl || ""}${src}` : src;
         return (
           <img
             {...props}
             src={imageUrl}
             alt={alt || ""}
             title={title}
-            role={imageUrl ? "button" : undefined}
-            tabIndex={imageUrl ? 0 : undefined}
-            style={{ ...(props.style || {}), cursor: imageUrl ? "pointer" : props.style?.cursor }}
+            role={imageUrl && onImagePreview ? "button" : undefined}
+            tabIndex={imageUrl && onImagePreview ? 0 : undefined}
+            style={{ ...(props.style || {}), cursor: imageUrl && onImagePreview ? "pointer" : props.style?.cursor }}
             onClick={(e) => {
               props.onClick?.(e);
               if (!imageUrl || e.defaultPrevented) return;
-              onImagePreview(imageUrl, imageUrl, alt || title || "image");
+              onImagePreview?.(imageUrl, imageUrl, alt || title || "image");
             }}
             onKeyDown={(e) => {
               props.onKeyDown?.(e);
               if (!imageUrl || e.defaultPrevented || (e.key !== "Enter" && e.key !== " ")) return;
               e.preventDefault();
-              onImagePreview(imageUrl, imageUrl, alt || title || "image");
+              onImagePreview?.(imageUrl, imageUrl, alt || title || "image");
             }}
           />
         );
       };
-    }
     return components;
-  }, [apiBaseUrl, onImagePreview]);
+  }, [apiBaseUrl, conversationId, onImagePreview]);
 
   return (
     <div className={className}>
@@ -152,6 +165,7 @@ export function MarkdownContent({
           {expanded ? "收起长内容" : "展开全文"}
         </button>
       )}
+      {previewFile && <WorkspaceFilePreview key={previewFile.url} file={previewFile} onClose={() => setPreviewFile(null)} />}
     </div>
   );
 }

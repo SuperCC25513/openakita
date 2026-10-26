@@ -4,7 +4,7 @@
 // bundled into the web build and never evaluated when running in a browser.
 
 import { IS_TAURI, IS_WEB, IS_CAPACITOR, IS_LOCAL_WEB, IS_MOBILE_BROWSER } from "./detect";
-import { getAccessToken } from "./auth";
+import { authFetch, getAccessToken } from "./auth";
 export { IS_TAURI, IS_WEB, IS_CAPACITOR, IS_LOCAL_WEB, IS_MOBILE_BROWSER };
 
 // ---------------------------------------------------------------------------
@@ -143,6 +143,10 @@ export async function downloadFile(
   if (IS_TAURI) {
     const { invoke: tauriInvoke } = await import("@tauri-apps/api/core");
     return tauriInvoke<string>("download_file", { url, filename });
+  }
+  if (isSameOriginFileApi(url)) {
+    await saveAttachment({ apiUrl: url, filename });
+    return filename;
   }
   const a = document.createElement("a");
   a.href = url;
@@ -334,14 +338,32 @@ export async function saveAttachment(opts: {
     return;
   }
 
+  // Navigation cannot carry Bearer headers. Only our same-origin file API
+  // needs this authenticated fetch; retain other URL and native contracts.
+  let objectUrl: string | undefined;
+  if (isSameOriginFileApi(apiUrl)) {
+    const response = await authFetch(apiUrl);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    objectUrl = URL.createObjectURL(await response.blob());
+  }
   const a = document.createElement("a");
-  a.href = apiUrl;
+  a.href = objectUrl || apiUrl;
   a.download = filename;
   a.target = "_blank";
   a.rel = "noopener noreferrer";
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
+  if (objectUrl) window.setTimeout(() => URL.revokeObjectURL(objectUrl!), 0);
+}
+
+function isSameOriginFileApi(url: string): boolean {
+  try {
+    const target = new URL(url, window.location.href);
+    return target.origin === window.location.origin && target.pathname === "/api/files";
+  } catch {
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------------------

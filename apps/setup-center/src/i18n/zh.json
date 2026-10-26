@@ -505,7 +505,16 @@
     "toolExecuteSkill": "执行技能",
     "toolUninstallSkill": "卸载技能",
     "toolSkillResult": "技能操作完成",
-    "toolSkillCount": "共 {{count}} 个技能"
+    "toolSkillCount": "共 {{count}} 个技能",
+    "filePreview": {
+      "loading": "正在加载文件…",
+      "unauthorized": "登录已失效，请重新登录后重试。",
+      "notFound": "文件不存在或已移动。",
+      "failed": "文件加载失败，请重试。",
+      "downloadOnly": "此文件暂不支持预览，可下载后查看。",
+      "isolated": "隔离预览 · 仅加载内嵌资源",
+      "download": "下载"
+    }
   },
   "skills": {
     "title": "技能管理",

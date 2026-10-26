@@ -505,7 +505,16 @@
     "toolExecuteSkill": "Execute skill",
     "toolUninstallSkill": "Uninstall skill",
     "toolSkillResult": "Skill operation done",
-    "toolSkillCount": "{{count}} skills total"
+    "toolSkillCount": "{{count}} skills total",
+    "filePreview": {
+      "loading": "Loading file…",
+      "unauthorized": "Your session expired. Sign in again, then retry.",
+      "notFound": "This file was moved or no longer exists.",
+      "failed": "Could not load the file. Try again.",
+      "downloadOnly": "Download this file to view it.",
+      "isolated": "Isolated preview · embedded resources only",
+      "download": "Download"
+    }
   },
   "skills": {
     "title": "Skill Manager",

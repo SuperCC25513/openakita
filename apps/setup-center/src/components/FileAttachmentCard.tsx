@@ -6,6 +6,8 @@ import { getFileTypeIcon, IconDownload } from "../icons";
 import { safeFetch } from "../providers";
 import { useMdModules } from "../views/chat/hooks/useMdModules";
 import { MarkdownContent } from "../views/chat/components/MarkdownContent";
+import { WorkspaceFilePreview } from "./WorkspaceFilePreview";
+import { resolveWorkspaceFile } from "../views/chat/utils/workspaceFiles";
 
 // When the app runs in web/online mode the backend requires auth. A plain
 // <img>/<video>/<iframe> ``src`` cannot send the Authorization header, so the
@@ -52,7 +54,7 @@ function detectMediaKind(filename: string): MediaKind {
 // Deliverables are essentially markdown or PDF (see issue: 交付物无非是 md 和 pdf).
 // Detect them so the attachment card can offer an in-app 弹窗预览 in addition to
 // the existing download, without forcing the user to download-then-open.
-type DocKind = "markdown" | "text" | "pdf" | null;
+type DocKind = "markdown" | "text" | "pdf" | "html" | null;
 const MD_EXT = new Set(["md", "markdown"]);
 const TEXT_EXT = new Set(["txt", "text", "log", "csv"]);
 function detectDocKind(filename: string): DocKind {
@@ -61,6 +63,7 @@ function detectDocKind(filename: string): DocKind {
   const ext = filename.slice(ix + 1).toLowerCase();
   if (MD_EXT.has(ext)) return "markdown";
   if (ext === "pdf") return "pdf";
+  if (ext === "html" || ext === "htm") return "html";
   if (TEXT_EXT.has(ext)) return "text";
   return null;
 }
@@ -95,6 +98,7 @@ export function FileAttachmentCard({ file, apiBaseUrl, inline = false }: FileAtt
 
   // Doc (md/pdf/text) preview modal state.
   const [docPreviewOpen, setDocPreviewOpen] = useState(false);
+  const [htmlPreviewOpen, setHtmlPreviewOpen] = useState(false);
   const [docText, setDocText] = useState<string | null>(null);
   const [docLoading, setDocLoading] = useState(false);
   const [docError, setDocError] = useState<string | null>(null);
@@ -108,6 +112,7 @@ export function FileAttachmentCard({ file, apiBaseUrl, inline = false }: FileAtt
 
   const openDocPreview = useCallback(async () => {
     if (!docKind) return;
+    if (docKind === "html") { setHtmlPreviewOpen(true); return; }
     // PDF has no HTML preview -- open it standalone instead of a blank modal.
     if (docKind === "pdf") { openInNewTab(); return; }
     setDocPreviewOpen(true);
@@ -523,6 +528,10 @@ export function FileAttachmentCard({ file, apiBaseUrl, inline = false }: FileAtt
       </div>
       {contextMenu}
       {docPreviewModal}
+      {htmlPreviewOpen && <WorkspaceFilePreview
+        file={resolveWorkspaceFile(mediaUrl, apiBaseUrl)!}
+        onClose={() => setHtmlPreviewOpen(false)}
+      />}
     </>
   );
 }

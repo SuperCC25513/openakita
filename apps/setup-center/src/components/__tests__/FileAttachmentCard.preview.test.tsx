@@ -16,7 +16,10 @@ const safeFetch = vi.fn(async (..._args: unknown[]) => ({
   status: 200,
   text: async () => "# 标题\n\n正文内容ABC",
 } as unknown as Response));
-vi.mock("../../providers", () => ({ safeFetch: (...a: unknown[]) => safeFetch(...a) }));
+vi.mock("../../providers", () => ({
+  safeFetch: (...a: unknown[]) => safeFetch(...a),
+  safeFetchResponse: (...a: unknown[]) => safeFetch(...a),
+}));
 
 import { FileAttachmentCard } from "../FileAttachmentCard";
 
@@ -88,5 +91,23 @@ describe("FileAttachmentCard preview (test18: HTML preview + PDF download/standa
     expect(menu?.parentElement).toBe(document.body);
     expect(menu?.style.left).toBe("137px");
     expect(menu?.style.top).toBe("211px");
+  });
+
+  it("opens HTML attachment cards in the shared isolated preview without a token URL", async () => {
+    Object.defineProperties(URL, {
+      createObjectURL: { configurable: true, value: vi.fn(() => "blob:html-card") },
+      revokeObjectURL: { configurable: true, value: vi.fn() },
+    });
+    HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+    HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
+    const { getByTitle } = render(<FileAttachmentCard
+      file={{ filename: "coffee-machine.html", file_path: "/workspace/demo/coffee-machine.html" }}
+      apiBaseUrl="http://test" />);
+    fireEvent.click(getByTitle("点击预览 · 右键更多操作"));
+    await waitFor(() => expect(document.querySelector("iframe")).not.toBeNull());
+    expect(document.querySelector("iframe")).toHaveAttribute("sandbox", "allow-scripts");
+    expect(document.querySelector("iframe")).not.toHaveAttribute("src");
+    expect(safeFetch.mock.calls[0][0]).not.toContain("token=");
+    expect(saveAttachment).not.toHaveBeenCalled();
   });
 });

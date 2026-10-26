@@ -1,4 +1,7 @@
 .workspaceFilePreview {
+  position: fixed;
+  inset: 0;
+  margin: auto;
   width: min(1120px, calc(100vw - 32px));
   height: min(900px, 90dvh);
   max-width: none;
